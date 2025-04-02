@@ -1,0 +1,169 @@
+#####################################################################################################################################################
+# Script for creating visual charts from the data set cereal.csv                                                                                    #
+# Boxplots, HeatMap, Density Charts                                                                                                                 #
+#####################################################################################################################################################
+
+cereal <- read.csv("G:\\.shortcut-targets-by-id\\1ehWwunuAo7CE1Vk2JYkUnQMmxh5pph3C\\DATA\\cereal.csv")
+
+head(cereal)
+summary(cereal)
+
+# Selecting only numeric columns within cereal
+numeric_cols <- sapply(cereal, function(x) is.numeric(x) || is.integer(x))
+numeric_cereal <- cereal[, numeric_cols] #numeric_cereal will be used in 
+# of all the graphs
+
+#--------------------------HEAT MAP--------------------------------------
+library(ggplot2)
+library(reshape2)
+
+# Calculate the correlation matrix
+cor_matrix <- cor(numeric_cereal, use = "pairwise.complete.obs")
+
+# Melt the correlation matrix for ggplot2
+melted_cor <- melt(cor_matrix)
+colnames(melted_cor) <- c("Var1", "Var2", "Correlation")
+
+# Create the correlation heatmap similar to the example image
+cereal_heat_map <- ggplot(melted_cor, aes(x = Var1, y = Var2, fill = Correlation)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "red", mid = "white", high = "blue",
+                       midpoint = 0, limits = c(-1, 1), name = "Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  coord_equal() + # Ensure tiles are square
+  labs(title = "Correlation Heatmap of Cereal Features")
+
+cereal_heat_map
+#====================================================================
+
+#---------------------SCATTERPLOT MATRIX-----------------------------
+library(ggplot2)
+library(GGally) # For ggpairs()
+
+
+# Basic scatterplot matrix
+ggpairs(numeric_cereal)
+
+# 2.  Customized Scatterplot Matrix
+
+#  You can customize the plots within the matrix.  Here's a more elaborate example:
+custom_scatterplot_matrix <- ggpairs(
+  numeric_cereal,
+  title = "Scatterplot Matrix of Cereal Data", # Overall title
+  upper = list(
+    continuous = wrap("cor", size = 4, color = "black") # Correlation in upper triangle
+  ),
+  lower = list(
+    continuous = "smooth" # Scatterplots with smoothed lines in lower triangle
+  ),
+  diag = list(
+    continuous = "densityDiag" # Density plots on the diagonal
+  )
+) +
+  theme_minimal() + # Use a minimal theme
+  theme(plot.title = element_text(hjust=0.5)) #center the title
+
+custom_scatterplot_matrix #display the plot
+
+selected_vars <- c("calories", "fat", "sugars", "protein", "fiber", "rating")
+subset_scatterplot_matrix <- ggpairs(cereal, columns = selected_vars)
+subset_scatterplot_matrix
+
+
+#===================================================================
+
+#----------------------DISTRIBUTION CHART---------------------------
+
+library(ggplot2)
+library(dplyr)
+
+
+#__  __ __  __ __  __ __  1st Dense Chart  __ __  __ __  __ __  __ __  __ __  __ 
+# Calculate the 75th percentile of cereal ratings
+rating_75th_percentile <- quantile(cereal$rating, 0.75)
+
+# Filter the cereal data to include only cereals with ratings >= 75th percentile
+top_rated_cereals <- cereal %>%
+  filter(rating >= rating_75th_percentile)
+
+# 1. Clear and Easy-to-Read Chart: Bar Chart
+#    A bar chart is excellent for comparing a categorical variable (cereal name)
+#    with a numeric variable (rating).  It's simple and very easy to read.
+clear_chart <- ggplot(top_rated_cereals, aes(x = name, y = rating)) +
+  geom_bar(stat = "identity", fill = "steelblue") + # Use identity to plot the actual rating
+  geom_text(aes(label = round(rating, 1)), vjust = -0.3, size = 3) + # Add rating labels
+  labs(
+    title = "Top-Rated Cereals (Ratings >= 75th Percentile)",
+    x = "Cereal Name",
+    y = "Rating"
+  ) +
+  theme_minimal() + # A clean theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), # Rotate cereal names if needed
+    plot.title = element_text(hjust = 0.5)
+  )
+
+#__  __ __  __ __  __ __  2nd Dense Chart  __ __  __ __  __ __  __ __  __ __  __ creative_chart <- ggplot(top_rated_cereals, aes(x = reorder(name, rating), y = rating)) + # Order by rating
+  geom_point(aes(size = rating, fill = rating), shape = 21, color = "black", alpha = 0.8) + # Open circles
+  scale_size_continuous(range = c(10, 20)) + # Adjust size range
+  scale_fill_gradient(low = "yellow", high = "red") + # Color scale for ratings
+  geom_text(aes(label = round(rating,1)), vjust = 0, hjust = 0, size = 3, nudge_x = 0.1) +
+  labs(
+    title = "Top-Rated Cereals (Ratings >= 75th Percentile)",
+    x = "Cereal Name",
+    y = "Rating",
+    size = "Rating", # Legend title for size
+    fill = "Rating"  # Legend title for color
+  ) +
+  theme_minimal() +  # A minimalist theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10), # Rotate and size x-labels
+    plot.title = element_text(hjust = 0.5, size = 14),           # Center and size title
+    legend.position = "top"
+  )
+
+# Display the charts
+print(clear_chart)
+print(creative_chart)
+
+# #=begin
+# library(ggplot2)
+# ggplot(numeric_cereal, aes(x = rating)) +
+#   geom_histogram(bins = 25, fill = "#69b3a2", color = "black") +
+#   labs(title = "Distribution of Cereal Ratings",
+#        x = "Ratings",
+#        y = "Frequency")
+#        scale_x_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10))
+# 
+# library(ggplot2)
+# library(dplyr)
+# library(hrbrthemes)
+# 
+# # Load dataset from github
+# # Make the histogram
+# cereal %>%
+#   ggplot( aes(x = rating)) +
+#   geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8) +
+#   ggtitle("Distribution of Cereal Ratings")
+# 
+# #=end
+#====================================================================
+
+#------------------------BOX PLOTS-----------------------------
+numeric_vars_for_boxplots <- c("sugars", "fat", "protein","fiber", "carbo")
+
+cereal_melted <- reshape2::melt(cereal, measure.vars = numeric_vars_for_boxplots)
+
+multiple_boxplots <- ggplot(cereal_melted, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Box Plots of Cereal Nutritional Distributions",
+       x = "Nutrients",
+       y = "Grams") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+multiple_boxplots
+#===================================================================
